@@ -72,19 +72,32 @@ if 'people' not in st.session_state:
 if 'expenses' not in st.session_state:
     st.session_state.expenses = []
 
-# --- 步驟 1：建立出遊名單 ---
+# --- 步驟 1：建立出遊名單 (已加入自動清空輸入框邏輯) ---
 st.header("步驟 1：建立出遊名單")
+
+def add_person_callback():
+    name = st.session_state.new_person_input.strip()
+    if name:
+        if name not in st.session_state.people:
+            st.session_state.people.append(name)
+            # 清空輸入框對應的 session_state
+            st.session_state.new_person_input = ""
+        else:
+            st.warning("此人已在名單中！")
+
 col1, col2 = st.columns([3, 1])
 with col1:
-    new_person = st.text_input("新增成員名稱", key="new_person", label_visibility="collapsed", placeholder="輸入名字...")
+    # 透過 key 綁定輸入狀態，並支援按下 Enter 直接觸發新增
+    st.text_input(
+        "新增成員名稱", 
+        key="new_person_input", 
+        label_visibility="collapsed", 
+        placeholder="輸入名字後可直接按 Enter...",
+        on_change=add_person_callback
+    )
 with col2:
-    if st.button("➕ 加入名單", use_container_width=True):
-        name = new_person.strip()
-        if name and name not in st.session_state.people:
-            st.session_state.people.append(name)
-            st.rerun()
-        elif name in st.session_state.people:
-            st.warning("此人已在名單中！")
+    if st.button("➕ 加入名單", use_container_width=True, on_click=add_person_callback):
+        pass
 
 if st.session_state.people:
     st.info(f"目前名單：{', '.join(st.session_state.people)}")
@@ -123,10 +136,9 @@ else:
 
 st.divider()
 
-# --- 步驟 3：確認與刪除費用清單 (本次更新重點) ---
+# --- 步驟 3：確認與刪除費用清單 ---
 st.header("步驟 3：已記錄的消費")
 if st.session_state.expenses:
-    # 建立表頭
     col_h1, col_h2, col_h3, col_h4, col_h5 = st.columns([2, 1, 1.5, 3, 1.5])
     col_h1.markdown("**項目名稱**")
     col_h2.markdown("**金額**")
@@ -135,7 +147,6 @@ if st.session_state.expenses:
     col_h5.markdown("**操作**")
     st.markdown("---")
 
-    # 逐筆顯示消費紀錄與個別的刪除按鈕
     for i, exp in enumerate(st.session_state.expenses):
         c1, c2, c3, c4, c5 = st.columns([2, 1, 1.5, 3, 1.5])
         c1.write(exp["description"])
@@ -143,14 +154,11 @@ if st.session_state.expenses:
         c3.write(exp["payer"])
         c4.write(", ".join(exp["participants"]))
         
-        # 獨立的刪除按鈕，利用 index (i) 確保刪除到正確的項目
         if c5.button("❌ 刪除", key=f"del_btn_{i}"):
-            st.session_state.expenses.pop(i) # 移除選定的那筆資料
-            st.rerun() # 重新整理網頁畫面
+            st.session_state.expenses.pop(i)
+            st.rerun()
             
     st.markdown("---")
-    
-    # 保留一鍵清空功能，移至列表底部，並加上一點上下間距
     st.write("")
     if st.button("🗑️ 清空所有消費紀錄", type="secondary"):
         st.session_state.expenses = []
