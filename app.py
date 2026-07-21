@@ -72,32 +72,22 @@ if 'people' not in st.session_state:
 if 'expenses' not in st.session_state:
     st.session_state.expenses = []
 
-# --- 步驟 1：建立出遊名單 (已修正重複觸發問題) ---
+# --- 步驟 1：建立出遊名單 (改用 form 確保穩定與自動清空) ---
 st.header("步驟 1：建立出遊名單")
 
-def add_person_action():
-    name = st.session_state.new_person_input.strip()
-    if name:
-        if name not in st.session_state.people:
-            st.session_state.people.append(name)
-            st.session_state.new_person_input = "" # 成功新增後清空輸入框
-        else:
-            # 只有在真的一模一樣的名字重複輸入時才跳出警告
+with st.form("person_form", clear_on_submit=True):
+    new_person = st.text_input("新增成員名稱", placeholder="輸入成員名字...")
+    submitted_person = st.form_submit_button("➕ 加入名單")
+    
+    if submitted_person:
+        name = new_person.strip()
+        if not name:
+            st.warning("請輸入成員名稱！")
+        elif name in st.session_state.people:
             st.warning(f"「{name}」已經在名單中了！")
-
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.text_input(
-        "新增成員名稱", 
-        key="new_person_input", 
-        label_visibility="collapsed", 
-        placeholder="輸入名字後可直接按 Enter..."
-    )
-with col2:
-    # 點擊按鈕時執行新增動作
-    if st.button("➕ 加入名單", use_container_width=True):
-        add_person_action()
-        st.rerun()
+        else:
+            st.session_state.people.append(name)
+            st.success(f"已加入成員：{name}")
 
 if st.session_state.people:
     st.info(f"目前名單：{', '.join(st.session_state.people)}")
@@ -132,7 +122,6 @@ else:
                     "participants": participants
                 })
                 st.success(f"已新增：{desc} (${int(amount)})")
-                st.rerun()
 
 st.divider()
 
