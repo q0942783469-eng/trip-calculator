@@ -101,7 +101,6 @@ else:
         amount = st.number_input("金額 (整數)", min_value=1, step=10)
         payer = st.selectbox("代墊人", options=st.session_state.people)
         
-        # 預設全選所有人
         participants = st.multiselect("分擔人 (點選取消不要分擔的人)", 
                                       options=st.session_state.people, 
                                       default=st.session_state.people)
@@ -124,17 +123,36 @@ else:
 
 st.divider()
 
-# --- 步驟 3：確認與刪除費用清單 ---
+# --- 步驟 3：確認與刪除費用清單 (本次更新重點) ---
 st.header("步驟 3：已記錄的消費")
 if st.session_state.expenses:
-    # 轉換成 DataFrame 方便顯示
-    df_expenses = pd.DataFrame(st.session_state.expenses)
-    df_expenses['participants'] = df_expenses['participants'].apply(lambda x: ", ".join(x))
-    df_expenses.columns = ["項目名稱", "金額", "代墊人", "分擔人"]
-    df_expenses.index = df_expenses.index + 1
-    st.dataframe(df_expenses, use_container_width=True)
+    # 建立表頭
+    col_h1, col_h2, col_h3, col_h4, col_h5 = st.columns([2, 1, 1.5, 3, 1.5])
+    col_h1.markdown("**項目名稱**")
+    col_h2.markdown("**金額**")
+    col_h3.markdown("**代墊人**")
+    col_h4.markdown("**分擔人**")
+    col_h5.markdown("**操作**")
+    st.markdown("---")
+
+    # 逐筆顯示消費紀錄與個別的刪除按鈕
+    for i, exp in enumerate(st.session_state.expenses):
+        c1, c2, c3, c4, c5 = st.columns([2, 1, 1.5, 3, 1.5])
+        c1.write(exp["description"])
+        c2.write(f"${exp['amount']}")
+        c3.write(exp["payer"])
+        c4.write(", ".join(exp["participants"]))
+        
+        # 獨立的刪除按鈕，利用 index (i) 確保刪除到正確的項目
+        if c5.button("❌ 刪除", key=f"del_btn_{i}"):
+            st.session_state.expenses.pop(i) # 移除選定的那筆資料
+            st.rerun() # 重新整理網頁畫面
+            
+    st.markdown("---")
     
-    if st.button("🗑️ 清空所有消費紀錄"):
+    # 保留一鍵清空功能，移至列表底部，並加上一點上下間距
+    st.write("")
+    if st.button("🗑️ 清空所有消費紀錄", type="secondary"):
         st.session_state.expenses = []
         st.rerun()
 else:
@@ -154,7 +172,6 @@ if st.button("🧮 產生結算報表", type="primary", use_container_width=True
 
         st.subheader("📊 結算明細總表 (可向右滑動查看各項目)")
         
-        # 建立報表用的資料表
         report_data = []
         for person in st.session_state.people:
             bal = balances[person]
@@ -172,7 +189,6 @@ if st.button("🧮 產生結算報表", type="primary", use_container_width=True
                 "👉 最終收付": bal_str
             }
             
-            # 填入各項目的分擔明細
             person_items = {desc: amt for desc, amt in itemized_details[person]}
             for i, exp in enumerate(st.session_state.expenses):
                 desc_key = f"{i+1}. {exp['description']}"
