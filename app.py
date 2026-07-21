@@ -72,7 +72,7 @@ if 'people' not in st.session_state:
 if 'expenses' not in st.session_state:
     st.session_state.expenses = []
 
-# --- 步驟 1：建立出遊名單 (改用 form 確保穩定與自動清空) ---
+# --- 步驟 1：建立出遊名單 (支援單獨移除成員) ---
 st.header("步驟 1：建立出遊名單")
 
 with st.form("person_form", clear_on_submit=True):
@@ -90,7 +90,24 @@ with st.form("person_form", clear_on_submit=True):
             st.success(f"已加入成員：{name}")
 
 if st.session_state.people:
-    st.info(f"目前名單：{', '.join(st.session_state.people)}")
+    st.markdown("**目前名單與管理：**")
+    # 讓每個成員以小區塊或標籤形式呈現，並附帶刪除按鈕
+    for person in list(st.session_state.people):
+        col_p1, col_p2 = st.columns([3, 1])
+        col_p1.write(f"👤 {person}")
+        if col_p2.button("❌ 移除", key=f"del_person_{person}"):
+            # 檢查該成員是否已經被使用在消費紀錄中（代墊人或分擔人）
+            in_use = False
+            for exp in st.session_state.expenses:
+                if exp["payer"] == person or person in exp["participants"]:
+                    in_use = True
+                    break
+            
+            if in_use:
+                st.error(f"無法移除「{person}」，因已有相關的消費紀錄！請先刪除該消費紀錄。")
+            else:
+                st.session_state.people.remove(person)
+                st.rerun()
 
 st.divider()
 
